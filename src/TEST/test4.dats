@@ -62,12 +62,12 @@ in
   end
 end
 
-macdef bracket(consume,work) = result where {
+macdef after(consume,work) = result where {
   val result = ( ,(work) )
   val () = ( ,(consume) )
 }
 
-//infixr (+) bracket
+//infixr (+) after
 
 fn
   lora_timestamp2timespec
@@ -86,96 +86,80 @@ fn
     | ~list_vt_cons( head, tail) => __freelin( tail, orig) where {
       val () = $BS.free( head, orig)
     }
+  fn __freelin_opt
+    ( x: Option_vt( uint32)
+    ):<> void =
+    case+ x of
+    | ~None_vt() => ()
+    | ~Some_vt(_) => ()
   val ls = $BS.split_on( 'T', i)
-  val result =
-    bracket
-    ( __freelin( ls, i)
-    , ( case+ ls of
-      | list_vt_cons( date_s, list_vt_cons(time_s, list_vt_nil())) => result where {
-        val date_ls = $BS.split_on( '-', date_s)
-        val time_ls = $BS.split_on( ':', time_s)
-        val result = bracket
-          ( ( __freelin( date_ls, date_s)
-            ; __freelin( time_ls, time_s)
-            )
-          , ( case+ ( date_ls, time_ls) of
-            | ( list_vt_cons( year_s, list_vt_cons( month_s, list_vt_cons( day_s, list_vt_nil())))
-              , list_vt_cons( hour_s, list_vt_cons( minute_s, list_vt_cons( secs_nsecs, list_vt_nil())))
-              ) => result where {
-                val secs_ls = $BS.split_on( '.', secs_nsecs)
-                val result = bracket
-                  ( __freelin( secs_ls, secs_nsecs)
-                  , ( case+ secs_ls of
-                    | list_vt_cons( secs_s, list_vt_cons( nsecs_z_s, list_vt_nil())) => 
-                    None_vt() (* remove this line and uncomment block to get the compiler error *)
-(*
-                    let
-                      val nsecs_sz = length nsecs_z_s
-                    in
-                      if nsecs_sz > 0
-                      then result where {
-                        fn __freelin_opt
-                          ( x: Option_vt( uint32)
-                          ):<> void =
-                          case+ x of
-                          | ~None_vt() => ()
-                          | ~Some_vt(_) => ()
-                        val nsecs_s = $BS.take( nsecs_sz - 1, nsecs_z_s) // remove the Z
-                        val oyear = $BS.parse_uint32 year_s
-                        val omonth = $BS.parse_uint32 month_s
-                        val oday = $BS.parse_uint32 day_s
-                        val ohour = $BS.parse_uint32 hour_s
-                        val ominute = $BS.parse_uint32 minute_s
-                        val osec = $BS.parse_uint32 secs_s
-                        val onsecs = $BS.parse_uint32 nsecs_s
-                        val result = None_vt()
-
-                          bracket
-                          ( ( __freelin_opt( oyear)
-                            ; __freelin_opt( omonth)
-                            ; __freelin_opt( oday)
-                            ; __freelin_opt( ohour)
-                            ; __freelin_opt( ominute)
-                            ; __freelin_opt( osec)
-                            ; __freelin_opt( onsecs)
-                            ; free( nsecs_s, nsecs_z_s)
-                            )
-                          , ( case+ ( oyear, omonth, oday, ohour, ominute, osec, onsecs) of
-                            | ( Some_vt( year), Some_vt( month), Some_vt( day), Some_vt( hour), Some_vt( minute), Some_vt( sec), Some_vt( nsecs)) => Some_vt( @(secs, nsecs) ) where {
-                              val year_i32 = $UN.cast{int32} (year - $UN.cast{uint32} 1900)
-                              val yday = get_yday_from_date( year, month, day) - $UN.cast{uint32}1
-                              val secs_per_day = $UN.cast{int32}86400
-                              val expr1 = (year_i32 - ($UN.cast{int32}70))*($UN.cast{int32}31536000)
-                              val expr2 = ((year_i32 - ($UN.cast{int32}69)) / ($UN.cast{int32}4))* secs_per_day
-                              val expr3 = ((year_i32 - ($UN.cast{int32}1))/($UN.cast{int32}100))* secs_per_day
-                              val expr4 = ((year_i32 + ($UN.cast{int32}299))/($UN.cast{int32}400)) * secs_per_day
-                              val secs = ($UN.cast{int32} sec)
-                                        + ($UN.cast{int32} minute) * ($UN.cast{int32} 60)
-                                        + ($UN.cast{int32} hour) * ($UN.cast{int32} 3600)
-                                        + ($UN.cast{int32} yday) * secs_per_day
-                                        + expr1
-                                        + expr2
-                                        - expr3
-                                        + expr4
-                            }
-                            | ( _, _, _, _, _, _, _) => None_vt()
-                            ): Option_vt( @(int32, uint32))
-                          )
+  val result = (__freelin( ls, i)) \after
+    (( case+ ls of
+    | list_vt_cons( date_s, list_vt_cons(time_s, list_vt_nil())) => result where {
+      val date_ls = $BS.split_on( '-', date_s)
+      val time_ls = $BS.split_on( ':', time_s)
+      val result = ( __freelin( date_ls, date_s); __freelin( time_ls, time_s)) \after
+        (( case+ ( date_ls, time_ls) of
+        | ( list_vt_cons( year_s, list_vt_cons( month_s, list_vt_cons( day_s, list_vt_nil())))
+          , list_vt_cons( hour_s, list_vt_cons( minute_s, list_vt_cons( secs_nsecs, list_vt_nil())))
+          ) => result where {
+            val secs_ls = $BS.split_on( '.', secs_nsecs)
+            val result = (__freelin( secs_ls, secs_nsecs)) \after
+              (( case+ secs_ls of
+              | list_vt_cons( secs_s, list_vt_cons( nsecs_z_s, list_vt_nil())) => 
+              let
+                val nsecs_sz = length nsecs_z_s
+              in
+                if nsecs_sz > 0
+                then result where {
+                  val nsecs_s = $BS.take( nsecs_sz - 1, nsecs_z_s) // remove the Z
+                  val oyear = $BS.parse_uint32 year_s
+                  val omonth = $BS.parse_uint32 month_s
+                  val oday = $BS.parse_uint32 day_s
+                  val ohour = $BS.parse_uint32 hour_s
+                  val ominute = $BS.parse_uint32 minute_s
+                  val osec = $BS.parse_uint32 secs_s
+                  val onsecs = $BS.parse_uint32 nsecs_s
+                  val result = ( __freelin_opt( oyear)
+                      ; __freelin_opt( omonth)
+                      ; __freelin_opt( oday)
+                      ; __freelin_opt( ohour)
+                      ; __freelin_opt( ominute)
+                      ; __freelin_opt( osec)
+                      ; __freelin_opt( onsecs)
+                      ; free( nsecs_s, nsecs_z_s)
+                      ) \after  
+                      (( case+ ( oyear, omonth, oday, ohour, ominute, osec, onsecs) of
+                      | ( Some_vt( year), Some_vt( month), Some_vt( day), Some_vt( hour), Some_vt( minute), Some_vt( sec), Some_vt( nsecs)) => Some_vt( @(secs, nsecs) ) where {
+                        val year_i32 = $UN.cast{int32} (year - $UN.cast{uint32} 1900)
+                        val yday = get_yday_from_date( year, month, day) - $UN.cast{uint32}1
+                        val secs_per_day = $UN.cast{int32}86400
+                        val expr1 = (year_i32 - ($UN.cast{int32}70))*($UN.cast{int32}31536000)
+                        val expr2 = ((year_i32 - ($UN.cast{int32}69)) / ($UN.cast{int32}4))* secs_per_day
+                        val expr3 = ((year_i32 - ($UN.cast{int32}1))/($UN.cast{int32}100))* secs_per_day
+                        val expr4 = ((year_i32 + ($UN.cast{int32}299))/($UN.cast{int32}400)) * secs_per_day
+                        val secs = ($UN.cast{int32} sec)
+                                  + ($UN.cast{int32} minute) * ($UN.cast{int32} 60)
+                                  + ($UN.cast{int32} hour) * ($UN.cast{int32} 3600)
+                                  + ($UN.cast{int32} yday) * secs_per_day
+                                  + expr1
+                                  + expr2
+                                  - expr3
+                                  + expr4
                       }
-                      else None_vt()
-                    end
-*)
-                    | _ => None_vt()
-                    ): Option_vt( @(int32, uint32))
-                  ) 
-              }
-            | (_, _) => None_vt()
-            ): Option_vt( @( int32, uint32))
-          )
-      } 
-      | _ => None_vt()
-      ): Option_vt( @(int32, uint32))
-    )
+                      | ( _, _, _, _, _, _, _) => None_vt()
+                      ): Option_vt( @(int32, uint32)))
+                }
+                else None_vt()
+              end
+              | _ => None_vt()
+              ): Option_vt( @(int32, uint32)))
+          }
+        | (_, _) => None_vt()
+        ): Option_vt( @( int32, uint32)))
+    } 
+    | _ => None_vt()
+    ): Option_vt( @(int32, uint32)))
 }
 
 implement main0() = {
