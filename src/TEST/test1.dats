@@ -25,16 +25,13 @@ let
       val () = $BS.free( head, orig)
     }
   val i0 = $BS.split_on( '-', i)
-  val result = case+ i0 of
-    | list_vt_cons( year_s, list_vt_cons( month_s, list_vt_cons( day_s, list_vt_nil()))) =>
-        ( if day_sz > 0
+  val result = 
+    ( case+ i0 of
+    | list_vt_cons( year_s, list_vt_cons( month_s, list_vt_cons( day_s, list_vt_nil()))) => if length day_s > 0
         then Some_vt(1)
         else None_vt()
-        ) where {
-      val day_sz = length day_s
-      val () = ( free( year_s, i); free( month_s, i); free( day_s, i))
-    }
-    | others => None_vt()
+    | _ => None_vt()
+    ):Option_vt(int)
   val () = __freelin( i0, i)
 in
   result
