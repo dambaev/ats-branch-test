@@ -106,7 +106,9 @@ fn
                 val result = bracket
                   ( __freelin( secs_ls, secs_nsecs)
                   , ( case+ secs_ls of
-                    | list_vt_cons( secs_s, list_vt_cons( nsecs_z_s, list_vt_nil())) =>
+                    | list_vt_cons( secs_s, list_vt_cons( nsecs_z_s, list_vt_nil())) => 
+                    None_vt() (* remove this line and uncomment block to get the compiler error *)
+(*
                     let
                       val nsecs_sz = length nsecs_z_s
                     in
@@ -126,7 +128,9 @@ fn
                         val ominute = $BS.parse_uint32 minute_s
                         val osec = $BS.parse_uint32 secs_s
                         val onsecs = $BS.parse_uint32 nsecs_s
-                        val result = bracket
+                        val result = None_vt()
+
+                          bracket
                           ( ( __freelin_opt( oyear)
                             ; __freelin_opt( omonth)
                             ; __freelin_opt( oday)
@@ -160,6 +164,7 @@ fn
                       }
                       else None_vt()
                     end
+*)
                     | _ => None_vt()
                     ): Option_vt( @(int32, uint32))
                   ) 
